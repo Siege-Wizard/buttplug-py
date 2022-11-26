@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buttplug-py"
+version = "0.1.0"
+authors = [
+  { name="Siege Wizard", email="wizard.siege@gmail.com" },
+]
+description = "Python client implementation of the Buttplug Intimate Hardware Control Protocol."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.9"
+dependencies = [
+    "websockets>=10.4",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/siege-wizard/buttplug-py"
+"Bug Tracker" = "https://github.com/siege-wizard/buttplug-py/issues"
