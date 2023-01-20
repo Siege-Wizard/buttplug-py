@@ -59,8 +59,8 @@ class Client:
             device.device_name,
             device.device_index,
             device.device_messages,
-            getattr(device, 'message_gap', None),
-            getattr(device, 'display_name', None),
+            getattr(device, 'device_message_timing_gap', None),
+            getattr(device, 'device_display_name', None),
         )
         self._logger.debug(f"Device added: {device.index} => {device}")
         self._devices[device.index] = device
@@ -190,7 +190,7 @@ class Device:
             name: str,
             index: int,
             messages: Union[list, dict],
-            message_gap: int = None,
+            message_timing_gap: int = None,
             display_name: str = None,
     ) -> None:
         self._client = client
@@ -198,7 +198,7 @@ class Device:
 
         self._name = name
         self._index = index
-        self._message_gap = message_gap
+        self._message_timing_gap = message_timing_gap
         self._display_name = display_name
 
         self._removed: bool = False
@@ -475,7 +475,7 @@ class Device:
                 f"while sending stop command (device: {self._index}):\n{message}")
 
     async def send(self, message: Outgoing) -> Incoming:
-        # TODO: enforce message gap
+        # TODO: enforce message timing gap
         return await self._client.send(message)
 
 

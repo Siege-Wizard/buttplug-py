@@ -2038,7 +2038,7 @@ class TestMessagesV3(TestMessagesV2):
                 {
                     "DeviceName": "Test Stroker",
                     "DeviceIndex": 1,
-                    "DeviceMessageGap": 100,
+                    "DeviceMessageTimingGap": 100,
                     "DeviceDisplayName": "User set name",
                     "DeviceMessages": {
                         "LinearCmd": [
@@ -2061,7 +2061,7 @@ class TestMessagesV3(TestMessagesV2):
             "Id": 0,
             "DeviceName": "Test Vibrator",
             "DeviceIndex": 0,
-            "DeviceMessageGap": 100,
+            "DeviceMessageTimingGap": 100,
             "DeviceDisplayName": "Rabbit Vibrator",
             "DeviceMessages": {
                 "ScalarCmd": [
@@ -2169,7 +2169,7 @@ class TestMessagesV3(TestMessagesV2):
                     {
                         "device_name": "Test Stroker",
                         "device_index": 1,
-                        "device_message_gap": 100,
+                        "device_message_timing_gap": 100,
                         "device_display_name": "User set name",
                         "device_messages": stroker_messages,
                     },
@@ -2190,7 +2190,7 @@ class TestMessagesV3(TestMessagesV2):
                     {
                         "device_name": "Test Stroker",
                         "device_index": 1,
-                        "device_message_gap": 100,
+                        "device_message_timing_gap": 100,
                         "device_display_name": "User set name",
                         "device_messages": stroker_messages,
                     },
@@ -2273,7 +2273,7 @@ class TestMessagesV3(TestMessagesV2):
                 "Rabbit Vibrator",
             )
         )
-        # Incorrect message gap
+        # Incorrect message timing gap
         self.expect_decode_fail(
             self.device_added_json,
             self.messages.DeviceAdded(

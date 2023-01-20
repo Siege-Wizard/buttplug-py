@@ -52,7 +52,7 @@ class Device(Field):
     device_name: str
     device_index: int
     device_messages: dict[str, list[Union[DeviceMessageAttributes, dict]]]
-    device_message_gap: int = None
+    device_message_timing_gap: int = None
     device_display_name: str = None
 
     def __post_init__(self):
@@ -75,7 +75,7 @@ class DeviceAdded(Incoming):
     device_name: str
     device_index: int
     device_messages: dict[str, list[Union[DeviceMessageAttributes, dict]]]
-    device_message_gap: int = None
+    device_message_timing_gap: int = None
     device_display_name: str = None
 
     def __post_init__(self):
