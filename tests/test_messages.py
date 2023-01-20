@@ -1998,7 +1998,8 @@ stroker_messages = {
     "LinearCmd": [
         {
             "StepCount": 100,
-            "FeatureDescriptor": "Stroker"
+            "FeatureDescriptor": "Stroker",
+            "ActuatorType": "Linear"
         },
     ],
     "StopDeviceCmd": [],
@@ -2044,7 +2045,8 @@ class TestMessagesV3(TestMessagesV2):
                         "LinearCmd": [
                             {
                                 "StepCount": 100,
-                                "FeatureDescriptor": "Stroker"
+                                "FeatureDescriptor": "Stroker",
+                                "ActuatorType": "Linear"
                             }
                         ],
                         "StopDeviceCmd": {}
