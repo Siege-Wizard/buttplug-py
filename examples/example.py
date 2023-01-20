@@ -12,7 +12,7 @@ import logging
 import sys
 
 # These are really the only things you actually need out of the library.
-# The Client and the *Connector are used to stablish a connection to the server.
+# The Client and the *Connector are used to establish a connection to the server.
 # ProtocolSpec can be used to specify the protocol version that the client may use.
 from buttplug import Client, WebsocketConnector, ProtocolSpec
 

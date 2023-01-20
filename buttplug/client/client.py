@@ -265,14 +265,15 @@ class Device:
             except KeyError:
                 pass
             else:
-                for i in range(attributes.get('FeatureCount', 1)):
-                    self._actuators.append(
-                        VibrateActuator(
-                            self,
-                            i,
-                            attributes.get('StepCount'),
+                if attributes.feature_count is not None:
+                    for i in range(attributes.feature_count):
+                        self._actuators.append(
+                            VibrateActuator(
+                                self,
+                                i,
+                                attributes.step_count,
+                            )
                         )
-                    )
 
             # Linear actuators
             try:
@@ -280,15 +281,16 @@ class Device:
             except KeyError:
                 pass
             else:
-                for i in range(attributes.get('FeatureCount', 1)):
-                    self._linear_actuators.append(
-                        LinearActuator(
-                            self,
-                            i,
-                            '',
-                            attributes.get('StepCount'),
+                if attributes.feature_count is not None:
+                    for i in range(attributes.feature_count):
+                        self._linear_actuators.append(
+                            LinearActuator(
+                                self,
+                                i,
+                                '',
+                                attributes.step_count,
+                            )
                         )
-                    )
 
             # Rotatory actuators
             try:
@@ -296,15 +298,16 @@ class Device:
             except KeyError:
                 pass
             else:
-                for i in range(attributes.get('FeatureCount', 1)):
-                    self._rotatory_actuators.append(
-                        RotatoryActuator(
-                            self,
-                            i,
-                            '',
-                            attributes.get('StepCount'),
+                if attributes.feature_count is not None:
+                    for i in range(attributes.feature_count):
+                        self._rotatory_actuators.append(
+                            RotatoryActuator(
+                                self,
+                                i,
+                                '',
+                                attributes.step_count,
+                            )
                         )
-                    )
 
             # Sensors
             try:
@@ -341,9 +344,9 @@ class Device:
                     ScalarActuator(
                         self,
                         i,
-                        attributes.get('FeatureDescriptor'),
-                        attributes.get('ActuatorType'),
-                        attributes.get('StepCount'),
+                        attributes.feature_descriptor,
+                        attributes.actuator_type,
+                        attributes.step_count,
                     )
                 )
 
@@ -353,8 +356,8 @@ class Device:
                     LinearActuator(
                         self,
                         i,
-                        attributes.get('FeatureDescriptor'),
-                        attributes.get('StepCount'),
+                        attributes.feature_descriptor,
+                        attributes.step_count,
                     )
                 )
 
@@ -364,8 +367,8 @@ class Device:
                     RotatoryActuator(
                         self,
                         i,
-                        attributes.get('FeatureDescriptor'),
-                        attributes.get('StepCount'),
+                        attributes.feature_descriptor,
+                        attributes.step_count,
                     )
                 )
 
@@ -375,16 +378,16 @@ class Device:
                     GenericSensor(
                         self,
                         i,
-                        attributes.get('FeatureDescriptor'),
-                        attributes.get('SensorType'),
-                        attributes.get('SensorRange'),
+                        attributes.feature_descriptor,
+                        attributes.sensor_type,
+                        attributes.sensor_range,
                     )
                 )
             for attributes in messages.pop(v3.SensorSubscribeCmd.__name__, []):
                 for i, sensor in enumerate(self._sensors):
                     sensor: GenericSensor
-                    if sensor.description == attributes.get('FeatureDescriptor') and \
-                            sensor.type == attributes.get('SensorType'):
+                    if sensor.description == attributes.feature_descriptor and \
+                            sensor.type == attributes.sensor_type:
                         self._sensors[i] = SubscribableSensor(
                             self,
                             i,
@@ -396,7 +399,7 @@ class Device:
                 else:
                     self._logger.error(
                         f"Received a subscribable sensor that was not previously defined as a sensor "
-                        f"(description: {attributes.get('FeatureDescriptor')}, type: {attributes.get('SensorType')})")
+                        f"(description: {attributes.feature_descriptor}, type: {attributes.sensor_type})")
             # v3.SensorUnsubscribeCmd is implicitly combined with v3.SensorSubscribeCmd
 
             # TODO: Raw endpoints
