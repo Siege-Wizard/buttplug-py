@@ -38,7 +38,8 @@ class ServerInfo(Incoming):
     max_ping_time: int
 
     def __post_init__(self):
-        self.message_version = ProtocolSpec(self.message_version)
+        if not isinstance(self.message_version, ProtocolSpec):
+            self.message_version = ProtocolSpec(self.message_version)
 
 
 ###############################################################################
@@ -58,8 +59,10 @@ class Device(Field):
     device_messages: dict[str, Union[DeviceMessageAttributes, dict]]
 
     def __post_init__(self):
-        self.device_messages = {key: DeviceMessageAttributes(**args)
-                                for key, args in self.device_messages.items()}
+        self.device_messages = {
+            key: attrs if isinstance(attrs, DeviceMessageAttributes) else DeviceMessageAttributes(**attrs)
+            for key, attrs in self.device_messages.items()
+        }
 
 
 @dataclass
@@ -67,7 +70,10 @@ class DeviceList(Incoming):
     devices: list[Union[Device, dict]]
 
     def __post_init__(self):
-        self.devices = [Device(**args) for args in self.devices]
+        self.devices = [
+            device if isinstance(device, Device) else Device(**device)
+            for device in self.devices
+        ]
 
 
 @dataclass
@@ -77,8 +83,10 @@ class DeviceAdded(Incoming):
     device_messages: dict[str, Union[DeviceMessageAttributes, dict]]
 
     def __post_init__(self):
-        self.device_messages = {key: DeviceMessageAttributes(**args)
-                                for key, args in self.device_messages.items()}
+        self.device_messages = {
+            key: attrs if isinstance(attrs, DeviceMessageAttributes) else DeviceMessageAttributes(**attrs)
+            for key, attrs in self.device_messages.items()
+        }
 
 
 ###############################################################################

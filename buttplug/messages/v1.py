@@ -55,8 +55,10 @@ class Device(Field):
     device_messages: dict[str, Union[DeviceMessageAttributes, dict]]
 
     def __post_init__(self):
-        self.device_messages = {key: DeviceMessageAttributes(**args)
-                                for key, args in self.device_messages.items()}
+        self.device_messages = {
+            key: attrs if isinstance(attrs, DeviceMessageAttributes) else DeviceMessageAttributes(**attrs)
+            for key, attrs in self.device_messages.items()
+        }
 
 
 @dataclass
@@ -64,7 +66,10 @@ class DeviceList(Incoming):
     devices: list[Union[Device, dict]]
 
     def __post_init__(self):
-        self.devices = [Device(**args) for args in self.devices]
+        self.devices = [
+            device if isinstance(device, Device) else Device(**device)
+            for device in self.devices
+        ]
 
 
 @dataclass
@@ -74,8 +79,10 @@ class DeviceAdded(Incoming):
     device_messages: dict[str, Union[DeviceMessageAttributes, dict]]
 
     def __post_init__(self):
-        self.device_messages = {key: DeviceMessageAttributes(**args)
-                                for key, args in self.device_messages.items()}
+        self.device_messages = {
+            key: attrs if isinstance(attrs, DeviceMessageAttributes) else DeviceMessageAttributes(**attrs)
+            for key, attrs in self.device_messages.items()
+        }
 
 
 ###############################################################################
@@ -97,7 +104,10 @@ class VibrateCmd(Outgoing):
     speeds: list[Union[Speed, dict]]
 
     def __post_init__(self):
-        self.speeds = [Speed(**args) for args in self.speeds]
+        self.speeds = [
+            speed if isinstance(speed, Speed) else Speed(**speed)
+            for speed in self.speeds
+        ]
 
 
 @dataclass
@@ -113,7 +123,10 @@ class LinearCmd(Outgoing):
     vectors: list[Union[Vector, dict]]
 
     def __post_init__(self):
-        self.vectors = [Vector(**args) for args in self.vectors]
+        self.vectors = [
+            vector if isinstance(vector, Vector) else Vector(**vector)
+            for vector in self.vectors
+        ]
 
 
 @dataclass
@@ -129,7 +142,10 @@ class RotateCmd(Outgoing):
     rotations: list[Union[Rotation, dict]]
 
     def __post_init__(self):
-        self.rotations = [Rotation(**args) for args in self.rotations]
+        self.rotations = [
+            rotation if isinstance(rotation, Rotation) else Rotation(**rotation)
+            for rotation in self.rotations
+        ]
 
 
 ###############################################################################
