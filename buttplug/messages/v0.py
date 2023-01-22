@@ -48,7 +48,8 @@ class Error(Incoming):
     error_code: ErrorCode
 
     def __post_init__(self):
-        self.error_code = ErrorCode(self.error_code)
+        if not isinstance(self.error_code, ErrorCode):
+            self.error_code = ErrorCode(self.error_code)
 
 
 @dataclass
@@ -75,7 +76,8 @@ class ServerInfo(Incoming):
     max_ping_time: int
 
     def __post_init__(self):
-        self.message_version = ProtocolSpec(self.message_version)
+        if not isinstance(self.message_version, ProtocolSpec):
+            self.message_version = ProtocolSpec(self.message_version)
 
 
 ###############################################################################
@@ -114,7 +116,10 @@ class DeviceList(Incoming):
     devices: list[Union[Device, dict]]
 
     def __post_init__(self):
-        self.devices = [Device(**args) for args in self.devices]
+        self.devices = [
+            device if isinstance(device, Device) else Device(**device)
+            for device in self.devices
+        ]
 
 
 @dataclass

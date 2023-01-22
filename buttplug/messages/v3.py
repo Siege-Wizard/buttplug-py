@@ -57,8 +57,10 @@ class Device(Field):
 
     def __post_init__(self):
         self.device_messages = {
-            key: [DeviceMessageAttributes(**d) for d in l]
-            for key, l in self.device_messages.items()
+            key: [
+                attrs if isinstance(attrs, DeviceMessageAttributes) else DeviceMessageAttributes(**attrs)
+                for attrs in message_attributes
+            ] for key, message_attributes in self.device_messages.items()
         }
 
 
@@ -67,7 +69,10 @@ class DeviceList(Incoming):
     devices: list[Union[Device, dict]]
 
     def __post_init__(self):
-        self.devices = [Device(**args) for args in self.devices]
+        self.devices = [
+            device if isinstance(device, Device) else Device(**device)
+            for device in self.devices
+        ]
 
 
 @dataclass
@@ -80,8 +85,10 @@ class DeviceAdded(Incoming):
 
     def __post_init__(self):
         self.device_messages = {
-            key: [DeviceMessageAttributes(**d) for d in l]
-            for key, l in self.device_messages.items()
+            key: [
+                attrs if isinstance(attrs, DeviceMessageAttributes) else DeviceMessageAttributes(**attrs)
+                for attrs in message_attributes
+            ] for key, message_attributes in self.device_messages.items()
         }
 
 
@@ -105,7 +112,10 @@ class ScalarCmd(Outgoing):
     scalars: list[Union[Scalar, dict]]
 
     def __post_init__(self):
-        self.scalars = [Scalar(**args) for args in self.scalars]
+        self.scalars = [
+            scalar if isinstance(scalar, Scalar) else Scalar(**scalar)
+            for scalar in self.scalars
+        ]
 
 
 ###############################################################################
