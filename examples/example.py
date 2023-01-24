@@ -55,10 +55,31 @@ async def main():
     await client.stop_scanning()
 
     # We can use the found devices as we see fit. The list of devices is
-    # automatically kept up to date by the client.
-    # For this example we are only going to list the found devices, but they
-    # provide async methods to control their corresponding physical objects.
+    # automatically kept up to date by the client:
+
+    # First, we are going to list the found devices.
     client.logger.info(f"Devices: {client.devices}")
+
+    # If we have any device we can access it by its ID:
+    if len(client.devices) != 0:
+        device = client.devices[0]
+
+        # The most common case among devices is that they have some actuators
+        # which accept a scalar value (0.0-1.0) as their command.
+        if len(device.actuators) != 0:
+            await device.actuators[0].command(0.5)
+
+        # Some devices may have linear actuators which need a different command.
+        # The first parameter is the time duration in ms and the second the
+        # position for the linear axis (0.0-1.0).
+        if len(device.linear_actuators) != 0:
+            await device.linear_actuators[0].command(1000, 0.5)
+
+        # Other devices may have rotatory actuators which another command.
+        # The first parameter is the speed (0.0-1.0) and the second parameter
+        # is a boolean, true for clockwise, false for anticlockwise.
+        if len(device.rotatory_actuators) != 0:
+            await device.rotatory_actuators[0].command(0.5, True)
 
     # Now that we've done that, we just disconnect, and we're done!
     await client.disconnect()
