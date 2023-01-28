@@ -4,6 +4,8 @@ from typing import Optional
 from websockets import connect, WebSocketClientProtocol, ConnectionClosedError, InvalidURI, InvalidHandshake
 
 from .abstract import Connector
+from ..errors import ConnectorError, InvalidAddressError, ServerNotFoundError, InvalidHandshakeError, \
+    WebsocketTimeoutError, DisconnectedError
 
 
 class WebsocketConnector(Connector):
@@ -15,18 +17,26 @@ class WebsocketConnector(Connector):
     async def connect(self) -> None:
         try:
             self._connection = await connect(self._address)
-        except InvalidURI:
-            self._logger.exception(f"Invalid address: {self._address}")
-            raise
+        except InvalidURI as e:
+            exception = InvalidAddressError(self._address)
+            self._logger.error(exception)
+            raise exception from e
+        except ConnectionRefusedError as e:
+            exception = ServerNotFoundError(self._address)
+            self._logger.error(exception)
+            raise exception from e
         except InvalidHandshake as e:
-            self._logger.exception(f"Invalid handshake: {e}")
-            raise
-        except TimeoutError:
-            self._logger.exception(f"Timeout error while trying to connect to {self._address}")
-            raise
+            exception = InvalidHandshakeError(e.message)
+            self._logger.error(exception)
+            raise exception from e
+        except TimeoutError as e:
+            exception = WebsocketTimeoutError(self._address)
+            self._logger.error(exception)
+            raise exception from e
         except Exception as e:
-            self._logger.exception(f"Unexpected exception: {e}")
-            raise
+            exception = ConnectorError(f"Unexpected exception: {e}")
+            self._logger.error(exception)
+            raise exception from e
         self._connected = True
         self._logger.info(f"Connected to {self._address}")
         create_task(self._handle_messages())
@@ -36,19 +46,20 @@ class WebsocketConnector(Connector):
             async for message in self._connection:
                 self._logger.debug(f"Message received:\n{message}")
                 await self._callback(message)
-        except ConnectionClosedError as e:
-            self._logger.exception(f"Error during disconnection: {e}")
-            raise
+        except ConnectionClosedError:
+            self._connected = False
         except Exception as e:
-            self._logger.exception(f"Unexpected exception: {e}")
-            raise
+            exception = ConnectorError(f"Unexpected exception: {e}")
+            self._logger.error(exception)
+            raise exception from e
 
     async def disconnect(self) -> None:
         try:
             await self._connection.close()
         except Exception as e:
-            self._logger.exception(f"Unexpected exception: {e}")
-            raise
+            exception = ConnectorError(f"Unexpected exception: {e}")
+            self._logger.error(exception)
+            raise exception from e
         self._connected = False
         self._logger.info(f"Disconnected from {self._address}")
 
@@ -57,8 +68,11 @@ class WebsocketConnector(Connector):
             try:
                 await self._connection.send(message)
             except Exception as e:
-                self._logger.exception(f"Unexpected exception: {e}")
-                raise
+                exception = ConnectorError(f"Unexpected exception: {e}")
+                self._logger.error(exception)
+                raise exception from e
             self._logger.debug(f"Message sent:\n{message}")
         else:
-            self._logger.error(f"Trying to send a message over a disconnected connector:\n{message}")
+            exception = DisconnectedError(message)
+            self._logger.error(exception)
+            raise exception

@@ -3,7 +3,13 @@ from .client import \
     ClientError, \
     ScanNotRunningError, \
     UnsupportedCommandError, \
-    UnexpectedMessageError
+    UnexpectedMessageError, \
+    ConnectorError, \
+    InvalidAddressError, \
+    ServerNotFoundError, \
+    InvalidHandshakeError, \
+    WebsocketTimeoutError, \
+    DisconnectedError
 from .server import \
     ServerError, \
     UnknownServerError, \
@@ -20,6 +26,12 @@ __all__ = (
     'ScanNotRunningError',
     'UnsupportedCommandError',
     'UnexpectedMessageError',
+    'ConnectorError',
+    'InvalidAddressError',
+    'ServerNotFoundError',
+    'InvalidHandshakeError',
+    'WebsocketTimeoutError',
+    'DisconnectedError',
 
     'ServerError',
     'UnknownServerError',
