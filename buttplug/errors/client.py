@@ -19,3 +19,39 @@ class UnsupportedCommandError(ClientError):
 
 class UnexpectedMessageError(ClientError):
     """Unexpected message received."""
+
+
+class ConnectorError(ClientError):
+    """Base class for errors returned by the connector."""
+
+
+class InvalidAddressError(ConnectorError):
+    """The provided endpoint is not a valid websocket URI."""
+
+    def __init__(self, address: str) -> None:
+        super().__init__(f"Invalid address: {address}")
+
+
+class ServerNotFoundError(ConnectorError):
+    """The provided endpoint returned a refused connection error."""
+
+    def __init__(self, address: str) -> None:
+        super().__init__(f"No Intiface server running at provided address: {address}")
+
+
+class InvalidHandshakeError(ConnectorError):
+    """Received a faulty websocket handshake."""
+
+
+class WebsocketTimeoutError(ConnectorError):
+    """The endpoint did not answer within the accepted deadline."""
+
+    def __init__(self, address: str) -> None:
+        super().__init__(f"Timeout error while trying to connect to {address}")
+
+
+class DisconnectedError(ConnectorError):
+    """The connector is disconnected."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"Trying to send a message over a disconnected connector:\n{message}")
