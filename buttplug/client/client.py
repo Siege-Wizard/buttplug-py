@@ -4,7 +4,7 @@ from logging import getLogger, Logger
 from typing import Callable, Optional, Union
 
 from ..connectors import Connector
-from ..errors import ScanNotRunningError, UnsupportedCommandError, UnexpectedMessageError
+from ..errors import ReconnectError, ScanNotRunningError, UnsupportedCommandError, UnexpectedMessageError
 from ..messages import Decoder, Encoder, Incoming, Outgoing, ProtocolSpec, v0, v1, v2, v3
 
 
@@ -42,6 +42,10 @@ class Client:
         return self._logger
 
     @property
+    def connected(self) -> bool:
+        return self._connector.connected
+
+    @property
     def devices(self) -> dict[int, 'Device']:
         return self._devices.copy()
 
@@ -67,6 +71,16 @@ class Client:
 
     async def connect(self, connector: Connector) -> None:
         self._connector = connector
+        await self._connect()
+
+    async def reconnect(self) -> None:
+        if self._connector is None:
+            exception = ReconnectError(self._name)
+            self._logger.error(exception)
+            raise exception
+        await self._connect()
+
+    async def _connect(self) -> None:
         self._connector.callback = self._handle_message
         await self._connector.connect()
 
@@ -158,8 +172,6 @@ class Client:
             await self._ping_loop_task
             self._ping_loop_task = None
         await self._connector.disconnect()
-        del self._connector.callback
-        self._connector = None
 
     async def start_scanning(self) -> Future:
         if self._scanning is None:
@@ -522,7 +534,7 @@ class Actuator(DevicePart):
         return self._step_count
 
     @abstractmethod
-    def command(self, *args) -> None:
+    async def command(self, *args) -> None:
         """Send a command to the actuator."""
 
 
