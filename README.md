@@ -7,7 +7,7 @@
 Buttplug-py is a python implementation of the Client of the Buttplug Sex Toy Control Protocol.
 It allows users to write applications that can connect to Buttplug Servers, such as
 [Intiface Central](https://github.com/intiface/intiface-central) or
-[Intiface CLI](https://github.com/intiface/intiface-engine).
+[Intiface Engine](https://github.com/intiface/intiface-engine).
 
 For more information on the Buttplug project, check out the project website at
 [buttplug.io](https://buttplug.io).
