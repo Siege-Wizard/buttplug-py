@@ -1,4 +1,12 @@
-# 0.1.1 (2022-11-26)
+# 0.2.0 (2023-01-28)
+
+## Features
+
+- Improved connector exception raising.
+- Provided property to check if a client is connected to the server.
+- Provided an async method to reconnect to the server after the first connection.
+
+# 0.1.1 (2023-01-24)
 
 ## Bug fixes
 
