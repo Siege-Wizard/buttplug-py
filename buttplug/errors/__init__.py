@@ -1,6 +1,7 @@
 from .base import ButtplugError
 from .client import \
     ClientError, \
+    ReconnectError, \
     ScanNotRunningError, \
     UnsupportedCommandError, \
     UnexpectedMessageError, \
@@ -23,6 +24,7 @@ __all__ = (
     'ButtplugError',
 
     'ClientError',
+    'ReconnectError',
     'ScanNotRunningError',
     'UnsupportedCommandError',
     'UnexpectedMessageError',

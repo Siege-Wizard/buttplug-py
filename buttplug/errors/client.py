@@ -9,6 +9,13 @@ class ClientError(ButtplugError):
         super().__init__(message)
 
 
+class ReconnectError(ClientError):
+    """Trying to reconnect without a connector."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__(f"Client '{name}' tried to reconnect without a connector")
+
+
 class ScanNotRunningError(ClientError):
     """Stop scan attempted while not running any."""
 
