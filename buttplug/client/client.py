@@ -5,6 +5,7 @@ from typing import Callable, Optional, Union
 
 from ..connectors import Connector
 from ..errors import ReconnectError, ScanNotRunningError, UnsupportedCommandError, UnexpectedMessageError
+from ..events import EventManager
 from ..messages import Decoder, Encoder, Incoming, Outgoing, ProtocolSpec, v0, v1, v2, v3
 
 
@@ -25,6 +26,28 @@ class Client:
         self._tasks: dict[int, Future] = {}
         self._scanning: Optional[Future] = None
         self._ping_loop_task: Optional[Task] = None
+
+        self._events = EventManager()
+
+        @self._events.on('device_added')
+        def log_device_added(client: 'Client', device: 'Device') -> None:
+            client._logger.debug(f"Device added: {device.index} => {device}")
+
+        @self._events.on('device_removed')
+        def log_device_removed(client: 'Client', device: 'Device') -> None:
+            client._logger.debug(f"Device removed: {device.index} => {device}")
+
+        @self._events.on('device_added')
+        def device_added(client: 'Client', device: 'Device') -> None:
+            client._devices[device.index] = device
+
+        @self._events.on('device_removed')
+        def device_removed(client: 'Client', device: 'Device') -> None:
+            del client._devices[device.index]
+
+        @self._events.on('device_removed')
+        def set_device_removed(_: 'Client', device: 'Device') -> None:
+            device.remove()
 
     def __getitem__(self, device: int) -> 'Device':
         return self._devices[device]
@@ -49,6 +72,10 @@ class Client:
     def devices(self) -> dict[int, 'Device']:
         return self._devices.copy()
 
+    @property
+    def events(self) -> EventManager:
+        return self._events
+
     async def send(self, message: Outgoing) -> Incoming:
         future = get_running_loop().create_future()
         self._tasks[message.id] = future
@@ -66,8 +93,7 @@ class Client:
             getattr(device, 'device_message_timing_gap', None),
             getattr(device, 'device_display_name', None),
         )
-        self._logger.debug(f"Device added: {device.index} => {device}")
-        self._devices[device.index] = device
+        self._events.emit('device_added', self, device)
 
     async def connect(self, connector: Connector) -> None:
         self._connector = connector
@@ -117,10 +143,7 @@ class Client:
                     self._create_device(message)
 
                 elif isinstance(message, v0.DeviceRemoved):
-                    device = self._devices[message.device_index]
-                    device.remove()
-                    self._logger.debug(f"Device removed: {device.index} => {device}")
-                    del self._devices[device.index]
+                    self._events.emit('device_removed', self, self._devices[message.device_index])
 
                 elif isinstance(message, v3.SensorReading):
                     try:
