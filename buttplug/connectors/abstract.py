@@ -1,39 +1,30 @@
 from abc import abstractmethod
 from logging import Logger, getLogger
-from typing import Awaitable, Callable
 
+from ..events import EventManager, StopCallbackChain
 from ..utils.cases import snake_case
-
-
-# Type for the async functions used as callbacks
-Callback = Callable[[str], Awaitable[None]]
-
-
-async def _no_callback(_: str) -> None:
-    """No-Op Callback."""
 
 
 class Connector:
     def __init__(self, logger: Logger = None) -> None:
-        self._callback: Callback = _no_callback
-
         self._connected: bool = False
 
         get_logger = getLogger if logger is None else logger.getChild
         self._logger: Logger = get_logger(snake_case(self.__class__.__name__))
 
-    @property
-    def callback(self) -> Callback:
-        """Callback to be called when a message is received."""
-        return self._callback
+        self._events = EventManager()
 
-    @callback.setter
-    def callback(self, value: Callback) -> None:
-        self._callback = value
+        @self._events.on('connect')
+        def set_connect_property(connector: 'Connector') -> None:
+            if connector.connected:
+                raise StopCallbackChain
+            connector._connected = True
 
-    @callback.deleter
-    def callback(self) -> None:
-        self._callback = _no_callback
+        @self._events.on('disconnect')
+        def unset_connect_property(connector: 'Connector') -> None:
+            if not connector.connected:
+                raise StopCallbackChain
+            connector._connected = False
 
     @property
     def connected(self) -> bool:
@@ -42,6 +33,10 @@ class Connector:
     @property
     def logger(self) -> Logger:
         return self._logger
+
+    @property
+    def events(self) -> EventManager:
+        return self._events
 
     @abstractmethod
     async def connect(self) -> None:

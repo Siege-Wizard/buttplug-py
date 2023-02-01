@@ -71,6 +71,7 @@ class Client:
 
     async def connect(self, connector: Connector) -> None:
         self._connector = connector
+        connector.events.on('receive', self._handle_message)
         await self._connect()
 
     async def reconnect(self) -> None:
@@ -81,7 +82,6 @@ class Client:
         await self._connect()
 
     async def _connect(self) -> None:
-        self._connector.callback = self._handle_message
         await self._connector.connect()
 
         if self._v == ProtocolSpec.v0:
@@ -99,7 +99,7 @@ class Client:
         for device in getattr(device_list, 'devices'):
             self._create_device(device)
 
-    async def _handle_message(self, message: str) -> None:
+    def _handle_message(self, _, message: str) -> None:
         for message in self._decoder.decode(message):
             # Handle server initiated messages
             if message.id == 0:
