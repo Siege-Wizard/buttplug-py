@@ -92,7 +92,8 @@ class Client:
         # TODO: handle errors
         max_ping_interval = getattr(server_info, 'max_ping_time')
         if max_ping_interval > 0:
-            self._ping_loop_task = create_task(self._ping_loop(max_ping_interval / 2 / 1000))
+            self._ping_loop_task = create_task(
+                self._ping_loop(max_ping_interval / 2 / 1000))
 
         device_list = await self.send(v3.RequestDeviceList())
         # TODO: handle errors
@@ -105,7 +106,8 @@ class Client:
             if message.id == 0:
                 if isinstance(message, v0.Error):
                     # Should not happen for properly encoded IDs
-                    self._logger.error(f"Unmatched error message received: {message}")
+                    self._logger.error(
+                        f"Unmatched error message received: {message}")
 
                 elif isinstance(message, v0.ScanningFinished):
                     self._logger.debug("Scanning finished.")
@@ -119,14 +121,16 @@ class Client:
                 elif isinstance(message, v0.DeviceRemoved):
                     device = self._devices[message.device_index]
                     device.remove()
-                    self._logger.debug(f"Device removed: {device.index} => {device}")
+                    self._logger.debug(
+                        f"Device removed: {device.index} => {device}")
                     del self._devices[device.index]
 
                 elif isinstance(message, v3.SensorReading):
                     try:
                         device = self[message.device_index]
                     except KeyError:
-                        self._logger.error(f"received data from an unknown device: {message.device_index}")
+                        self._logger.error(
+                            f"received data from an unknown device: {message.device_index}")
                         continue
                     try:
                         sensor: SubscribableSensor = device.sensors[message.sensor_index]
@@ -148,14 +152,16 @@ class Client:
                     pass  # TODO: Raw endpoints
 
                 else:
-                    self._logger.error(f"Unexpected message received: {message}")
+                    self._logger.error(
+                        f"Unexpected message received: {message}")
 
             # Route responses to client initiated messages
             elif message.id in self._tasks:
                 self._tasks[message.id].set_result(message)
                 del self._tasks[message.id]
             else:
-                self._logger.error(f"Message with unexpected Id received: {message}")
+                self._logger.error(
+                    f"Message with unexpected Id received: {message}")
 
     async def _ping_loop(self, interval: float) -> None:
         try:
@@ -223,117 +229,57 @@ class Device:
 
         if self._client.version == ProtocolSpec.v0:
             # v0 stores messages as a list[str]
-
-            # Stop
-            try:
-                messages.pop(v0.StopDeviceCmd.__name__)
-            except KeyError:
-                self._stop = False
-
-            # Actuators
-            try:
-                messages.pop(v0.SingleMotorVibrateCmd.__name__)
-            except KeyError:
-                pass
-            else:
-                self._actuators.append(SingleMotorVibrateActuator(self, len(self._actuators)))
-            try:
-                messages.pop(v0.KiirooCmd.__name__)
-            except KeyError:
-                pass
-            else:
-                self._actuators.append(KiirooActuator(self, len(self._actuators)))
-            try:
-                messages.pop(v0.FleshlightLaunchFW12Cmd.__name__)
-            except KeyError:
-                pass
-            else:
-                self._actuators.append(FleshlightLaunchFW12Actuator(self, len(self._actuators)))
-            try:
-                messages.pop(v0.LovenseCmd.__name__)
-            except KeyError:
-                pass
-            else:
-                self._actuators.append(LovenseActuator(self, len(self._actuators)))
-            try:
-                messages.pop(v0.VorzeA10CycloneCmd.__name__)
-            except KeyError:
-                pass
-            else:
-                self._actuators.append(VorzeA10CycloneActuator(self, len(self._actuators)))
+            for cmd, actuator in [(v0.SingleMotorVibrateCmd, SingleMotorVibrateActuator), (v0.KiirooCmd, KiirooActuator),
+                                  (v0.FleshlightLaunchFW12Cmd, FleshlightLaunchFW12Actuator), (
+                                      v0.LovenseCmd, LovenseActuator),
+                                  (v0.VorzeA10CycloneCmd, VorzeA10CycloneActuator)]:
+                if cmd.__name__ in messages:
+                    self._actuators.append(
+                        actuator(self, len(self._actuators)))
+                    messages.pop(cmd.__name__, None)
+            self._stop = v0.StopDeviceCmd.__name__ not in messages
 
         elif self._client.version in (ProtocolSpec.v1, ProtocolSpec.v2):
             # v1 & v2 stores messages as a dict[str, dict[str, Any]]
-
-            # Stop
             try:
                 messages.pop(v1.StopDeviceCmd.__name__)
             except KeyError:
                 self._stop = False
 
-            # Actuators
             try:
                 attributes = messages.pop(v1.VibrateCmd.__name__)
+                if attributes.feature_count is not None:
+                    self._actuators.extend([VibrateActuator(
+                        self, i, attributes.step_count) for i in range(attributes.feature_count)])
             except KeyError:
                 pass
-            else:
-                if attributes.feature_count is not None:
-                    for i in range(attributes.feature_count):
-                        self._actuators.append(
-                            VibrateActuator(
-                                self,
-                                i,
-                                attributes.step_count,
-                            )
-                        )
 
-            # Linear actuators
             try:
                 attributes = messages.pop(v1.LinearCmd.__name__)
+                if attributes.feature_count is not None:
+                    self._linear_actuators.extend([LinearActuator(
+                        self, i, '', attributes.step_count) for i in range(attributes.feature_count)])
             except KeyError:
                 pass
-            else:
-                if attributes.feature_count is not None:
-                    for i in range(attributes.feature_count):
-                        self._linear_actuators.append(
-                            LinearActuator(
-                                self,
-                                i,
-                                '',
-                                attributes.step_count,
-                            )
-                        )
 
-            # Rotatory actuators
             try:
                 attributes = messages.pop(v1.RotateCmd.__name__)
+                if attributes.feature_count is not None:
+                    self._rotatory_actuators.extend([RotatoryActuator(
+                        self, i, '', attributes.step_count) for i in range(attributes.feature_count)])
             except KeyError:
                 pass
-            else:
-                if attributes.feature_count is not None:
-                    for i in range(attributes.feature_count):
-                        self._rotatory_actuators.append(
-                            RotatoryActuator(
-                                self,
-                                i,
-                                '',
-                                attributes.step_count,
-                            )
-                        )
 
-            # Sensors
             try:
                 messages.pop(v2.BatteryLevelCmd.__name__)
+                self._sensors.append(BatteryLevel(self))
             except KeyError:
                 pass
-            else:
-                self._sensors.append(BatteryLevel(self))
             try:
                 messages.pop(v2.RSSILevelCmd.__name__)
+                self._sensors.append(RSSILevel(self))
             except KeyError:
                 pass
-            else:
-                self._sensors.append(RSSILevel(self))
 
             # TODO: Raw endpoints
             # v2.RawWriteCmd
@@ -341,77 +287,72 @@ class Device:
             # v2.RawSubscribeCmd
             # v2.RawUnsubscribeCmd is implicitly combined with v3.RawSubscribeCmd
 
-        elif self._client.version == ProtocolSpec.v3:
+        if self._client.version == ProtocolSpec.v3:
             # v3 stores messages as a dict[str, list[dict[str, Any]]]
 
             # Stop
-            try:
-                messages.pop(v3.StopDeviceCmd.__name__)
-            except KeyError:
-                self._stop = False
+            messages.pop(v3.StopDeviceCmd.__name__, None)
+            self._stop = False if v3.StopDeviceCmd.__name__ in messages else self._stop
 
             # Actuators
-            for i, attributes in enumerate(messages.pop(v3.ScalarCmd.__name__, [])):
-                self._actuators.append(
-                    ScalarActuator(
-                        self,
-                        i,
-                        attributes.feature_descriptor,
-                        attributes.actuator_type,
-                        attributes.step_count,
-                    )
-                )
+            self._actuators.extend(
+                ScalarActuator(
+                    self,
+                    i,
+                    attributes['feature_descriptor'],
+                    attributes['actuator_type'],
+                    attributes['step_count']
+                ) for i, attributes in enumerate(messages.get(v3.ScalarCmd.__name__, []))
+            )
 
             # Linear actuators
-            for i, attributes in enumerate(messages.pop(v3.LinearCmd.__name__, [])):
-                self._linear_actuators.append(
-                    LinearActuator(
-                        self,
-                        i,
-                        attributes.feature_descriptor,
-                        attributes.step_count,
-                    )
-                )
+            self._linear_actuators.extend(
+                LinearActuator(
+                    self,
+                    i,
+                    attributes['feature_descriptor'],
+                    attributes['step_count']
+                ) for i, attributes in enumerate(messages.get(v3.LinearCmd.__name__, []))
+            )
 
             # Rotatory actuators
-            for i, attributes in enumerate(messages.pop(v3.RotateCmd.__name__, [])):
-                self._rotatory_actuators.append(
-                    RotatoryActuator(
-                        self,
-                        i,
-                        attributes.feature_descriptor,
-                        attributes.step_count,
-                    )
-                )
+            self._rotatory_actuators.extend(
+                RotatoryActuator(
+                    self,
+                    i,
+                    attributes['feature_descriptor'],
+                    attributes['step_count']
+                ) for i, attributes in enumerate(messages.get(v3.RotateCmd.__name__, []))
+            )
 
             # Sensors
-            for i, attributes in enumerate(messages.pop(v3.SensorReadCmd.__name__, [])):
-                self._sensors.append(
-                    GenericSensor(
-                        self,
-                        i,
-                        attributes.feature_descriptor,
-                        attributes.sensor_type,
-                        attributes.sensor_range,
-                    )
-                )
-            for attributes in messages.pop(v3.SensorSubscribeCmd.__name__, []):
-                for i, sensor in enumerate(self._sensors):
-                    sensor: GenericSensor
-                    if sensor.description == attributes.feature_descriptor and \
-                            sensor.type == attributes.sensor_type:
-                        self._sensors[i] = SubscribableSensor(
+            sensors = [GenericSensor(
+                self,
+                i,
+                attributes['feature_descriptor'],
+                attributes['sensor_type'],
+                attributes['sensor_range']
+            ) for i, attributes in enumerate(messages.get(v3.SensorReadCmd.__name__, []))]
+
+            for attributes in messages.get(v3.SensorSubscribeCmd.__name__, []):
+                for i, sensor in enumerate(sensors):
+                    if sensor.description == attributes['feature_descriptor'] and sensor.type == attributes['sensor_type']:
+                        sensors[i] = SubscribableSensor(
                             self,
                             i,
                             sensor.description,
                             sensor.type,
-                            sensor.ranges,
+                            sensor.ranges
                         )
                         break
                 else:
                     self._logger.error(
                         f"Received a subscribable sensor that was not previously defined as a sensor "
-                        f"(description: {attributes.feature_descriptor}, type: {attributes.sensor_type})")
+                        f"(description: {attributes['feature_descriptor']}, type: {attributes['sensor_type']})"
+                    )
+
+            self._sensors = sensors
+
             # v3.SensorUnsubscribeCmd is implicitly combined with v3.SensorSubscribeCmd
 
             # TODO: Raw endpoints
@@ -421,7 +362,8 @@ class Device:
             # v3.RawUnsubscribeCmd is implicitly combined with v3.RawSubscribeCmd
 
         for message in messages:
-            self._logger.debug(f"Unknown message type accepted by {self} (index: {self._index}): {message}")
+            self._logger.debug(
+                f"Unknown message type accepted by {self} (index: {self._index}): {message}")
 
     def __str__(self) -> str:
         if self._display_name is not None:
@@ -467,7 +409,8 @@ class Device:
         if not self._stop:
             raise UnsupportedCommandError("stop device")
 
-        self._logger.debug(f"Sending stop command to device {self} (index: {self._index})")
+        self._logger.debug(
+            f"Sending stop command to device {self} (index: {self._index})")
 
         message = await self.send(v0.StopDeviceCmd(
             self.index,
@@ -501,7 +444,8 @@ class DevicePart:
             description: str,
     ) -> None:
         self._device = device
-        self._logger = device.logger.getChild(f'{self.__class__.__name__.lower()}{index}')
+        self._logger = device.logger.getChild(
+            f'{self.__class__.__name__.lower()}{index}')
 
         self._index = index
         self._description = description
@@ -549,23 +493,17 @@ class SingleMotorVibrateActuator(Actuator):
         super().__init__(device, index, '')
 
     async def command(self, speed: float) -> None:
-        self._logger.debug(f"Sending vibrate command {speed} to device {self._device} (index: {self._device.index})")
+        self._logger.debug(
+            f"Sending vibrate command {speed} to device {self._device} (index: {self._device.index})")
 
-        message = await self._device.send(v0.SingleMotorVibrateCmd(
-            self._device.index,
-            speed,
-        ))
+        message = await self._device.send(v0.SingleMotorVibrateCmd(self._device.index, speed))
 
-        if isinstance(message, v0.Ok):
-            pass
-
-        elif isinstance(message, v0.Error):
-            self._logger.error(
-                f"Error while sending vibrate command {speed} (device: {self._device.index}) "
-                f"code {message.error_code}: {message.error_message}")
+        if isinstance(message, v0.Error):
+            self._logger.error(f"Error while sending vibrate command {speed} (device: {self._device.index}) "
+                               f"code {message.error_code}: {message.error_message}")
             raise message.error_code.exception(message.error_message)
 
-        else:
+        if not isinstance(message, v0.Ok):
             raise UnexpectedMessageError(
                 f"while sending vibrate command {speed} (device: {self._device.index}):\n{message}")
 
@@ -581,7 +519,8 @@ class KiirooActuator(Actuator):
         super().__init__(device, index, '')
 
     async def command(self, command: str) -> None:
-        self._logger.debug(f"Sending Kiiroo command '{command}' to device {self._device} (index: {self._device.index})")
+        self._logger.debug(
+            f"Sending Kiiroo command '{command}' to device {self._device} (index: {self._device.index})")
 
         message = await self._device.send(v0.KiirooCmd(
             self._device.index,
@@ -800,6 +739,7 @@ class RotatoryActuator(Actuator):
 
 class ScalarActuator(Actuator):
     """v3 actuator that accepts ScalarCmds."""
+
     def __init__(
             self,
             device: Device,
@@ -869,26 +809,22 @@ class BatteryLevel(Sensor):
         message = await self._device.send(v2.BatteryLevelCmd(self._device.index))
 
         if isinstance(message, v2.BatteryLevelReading):
-            # If the metadata doesn't match, log the error but continue
-            # TODO: consider raising exceptions instead
             if message.device_index != self._index:
+                error_message = f"Received battery level from device index {message.device_index} when expecting device index {self._device.index}"
                 self._logger.error(
-                    f"Received battery level from device index {message.device_index} "
-                    f"when expecting device index {self._device.index}")
-            # Success
-            self._logger.debug(
-                f"Read battery level (device: {message.device_index}): {message.battery_level}")
+                    f"Error while reading battery level (device: {self._device.index}): {error_message}")
+                raise UnexpectedMessageError(error_message)
             return [message.battery_level]
 
         elif isinstance(message, v2.Error):
-            self._logger.error(
-                f"Error while reading battery level (device: {self._device.index}) "
-                f"code {message.error_code}: {message.error_message}")
-            raise message.error_code.exception(message.error_message)
+            error_message = f"Error while reading battery level (device: {self._device.index}) code {message.error_code}: {message.error_message}"
+            self._logger.error(error_message)
+            raise message.error_code.exception(error_message)
 
         else:
-            raise UnexpectedMessageError(
-                f"while reading battery level (device: {self._device.index}):\n{message}")
+            error_message = f"Unexpected message while reading battery level (device: {self._device.index}): {message}"
+            self._logger.error(error_message)
+            raise UnexpectedMessageError(error_message)
 
 
 class RSSILevel(Sensor):
@@ -977,7 +913,8 @@ class GenericSensor(Sensor):
                     f"Received data for sensor type '{message.sensor_type}' "
                     f"when expecting sensor type '{self._type}'")
             if len(message.data) != len(self._ranges):
-                self._logger.error(f"Received {len(message.data)} data when expecting {len(self._ranges)}")
+                self._logger.error(
+                    f"Received {len(message.data)} data when expecting {len(self._ranges)}")
             # Success
             self._logger.debug(
                 f"Read data (device: {message.device_index}, sensor: {message.sensor_index}): {message.data}")
@@ -1044,7 +981,7 @@ class SubscribableSensor(GenericSensor):
         self._logger.debug(
             f"Unsubscribing from device {self._device} (index {self._device.index}) sensor (index {self._index})")
 
-        message = await self._device.send(v3.SensorSubscribeCmd(
+        message = await self._device.send(v3.SensorUnsubscribeCmd(
             self._device.index,
             self._index,
             self._type,
