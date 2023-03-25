@@ -1038,7 +1038,7 @@ class SubscribableSensor(GenericSensor):
         self._logger.debug(
             f"Unsubscribing from device {self._device} (index {self._device.index}) sensor (index {self._index})")
 
-        message = await self._device.send(v3.SensorSubscribeCmd(
+        message = await self._device.send(v3.SensorUnsubscribeCmd(
             self._device.index,
             self._index,
             self._type,
