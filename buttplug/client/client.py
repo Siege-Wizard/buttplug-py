@@ -863,32 +863,26 @@ class BatteryLevel(Sensor):
 
     @property
     async def read(self) -> list[Number]:
-        self._logger.debug(
-            f"Reading battery level from device {self._device} (index {self._device.index})")
+        self._logger.debug(f"Reading battery level from device {self._device} (index {self._device.index})")
 
         message = await self._device.send(v2.BatteryLevelCmd(self._device.index))
 
         if isinstance(message, v2.BatteryLevelReading):
-            # If the metadata doesn't match, log the error but continue
-            # TODO: consider raising exceptions instead
             if message.device_index != self._index:
-                self._logger.error(
-                    f"Received battery level from device index {message.device_index} "
-                    f"when expecting device index {self._device.index}")
-            # Success
-            self._logger.debug(
-                f"Read battery level (device: {message.device_index}): {message.battery_level}")
+                error_message = f"Received battery level from device index {message.device_index} when expecting device index {self._device.index}"
+                self._logger.error(f"Error while reading battery level (device: {self._device.index}): {error_message}")
+                raise UnexpectedMessageError(error_message)
             return [message.battery_level]
 
         elif isinstance(message, v2.Error):
-            self._logger.error(
-                f"Error while reading battery level (device: {self._device.index}) "
-                f"code {message.error_code}: {message.error_message}")
-            raise message.error_code.exception(message.error_message)
+            error_message = f"Error while reading battery level (device: {self._device.index}) code {message.error_code}: {message.error_message}"
+            self._logger.error(error_message)
+            raise message.error_code.exception(error_message)
 
         else:
-            raise UnexpectedMessageError(
-                f"while reading battery level (device: {self._device.index}):\n{message}")
+            error_message = f"Unexpected message while reading battery level (device: {self._device.index}): {message}"
+            self._logger.error(error_message)
+            raise UnexpectedMessageError(error_message)
 
 
 class RSSILevel(Sensor):
