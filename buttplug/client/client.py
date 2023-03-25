@@ -551,23 +551,15 @@ class SingleMotorVibrateActuator(Actuator):
     async def command(self, speed: float) -> None:
         self._logger.debug(f"Sending vibrate command {speed} to device {self._device} (index: {self._device.index})")
 
-        message = await self._device.send(v0.SingleMotorVibrateCmd(
-            self._device.index,
-            speed,
-        ))
+        message = await self._device.send(v0.SingleMotorVibrateCmd(self._device.index, speed))
 
-        if isinstance(message, v0.Ok):
-            pass
-
-        elif isinstance(message, v0.Error):
-            self._logger.error(
-                f"Error while sending vibrate command {speed} (device: {self._device.index}) "
-                f"code {message.error_code}: {message.error_message}")
+        if isinstance(message, v0.Error):
+            self._logger.error(f"Error while sending vibrate command {speed} (device: {self._device.index}) "
+                                f"code {message.error_code}: {message.error_message}")
             raise message.error_code.exception(message.error_message)
 
-        else:
-            raise UnexpectedMessageError(
-                f"while sending vibrate command {speed} (device: {self._device.index}):\n{message}")
+        if not isinstance(message, v0.Ok):
+            raise UnexpectedMessageError(f"while sending vibrate command {speed} (device: {self._device.index}):\n{message}")
 
 
 class KiirooActuator(Actuator):
