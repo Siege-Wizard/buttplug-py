@@ -869,26 +869,30 @@ class BatteryLevel(Sensor):
         message = await self._device.send(v2.BatteryLevelCmd(self._device.index))
 
         if isinstance(message, v2.BatteryLevelReading):
-            # If the metadata doesn't match, log the error but continue
-            # TODO: consider raising exceptions instead
             if message.device_index != self._index:
-                self._logger.error(
+                error_msg = (
                     f"Received battery level from device index {message.device_index} "
                     f"when expecting device index {self._device.index}")
-            # Success
+                self._logger.error(error_msg)
+                raise UnexpectedMessageError(error_msg)
+
             self._logger.debug(
                 f"Read battery level (device: {message.device_index}): {message.battery_level}")
             return [message.battery_level]
 
         elif isinstance(message, v2.Error):
-            self._logger.error(
+            error_msg = (
                 f"Error while reading battery level (device: {self._device.index}) "
                 f"code {message.error_code}: {message.error_message}")
+            self._logger.error(error_msg)
             raise message.error_code.exception(message.error_message)
 
         else:
-            raise UnexpectedMessageError(
+            error_msg = (
+                f"Unexpected message type {type(message)} "
                 f"while reading battery level (device: {self._device.index}):\n{message}")
+            self._logger.error(error_msg)
+            raise UnexpectedMessageError(error_msg)
 
 
 class RSSILevel(Sensor):
