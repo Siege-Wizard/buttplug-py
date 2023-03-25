@@ -12,31 +12,26 @@ class WebsocketConnector(Connector):
     def __init__(self, address: str, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._address = address
-        self._connection: Optional[WebSocketClientProtocol] = None
+        self._connection = None
 
     async def connect(self) -> None:
         try:
             self._connection = await connect(self._address)
-        except InvalidURI as e:
-            exception = InvalidAddressError(self._address)
-            self._logger.error(exception)
-            raise exception from e
-        except ConnectionRefusedError as e:
-            exception = ServerNotFoundError(self._address)
-            self._logger.error(exception)
-            raise exception from e
-        except InvalidHandshake as e:
-            exception = InvalidHandshakeError(e.message)
-            self._logger.error(exception)
-            raise exception from e
-        except TimeoutError as e:
-            exception = WebsocketTimeoutError(self._address)
+        except (InvalidURI, ConnectionRefusedError, InvalidHandshake, TimeoutError) as e:
+            error_map = {
+                InvalidURI: InvalidAddressError(self._address),
+                ConnectionRefusedError: ServerNotFoundError(self._address),
+                InvalidHandshake: InvalidHandshakeError(e.message),
+                TimeoutError: WebsocketTimeoutError(self._address)
+            }
+            exception = error_map[type(e)]
             self._logger.error(exception)
             raise exception from e
         except Exception as e:
             exception = ConnectorError(f"Unexpected exception: {e}")
             self._logger.error(exception)
             raise exception from e
+
         self._connected = True
         self._logger.info(f"Connected to {self._address}")
         create_task(self._handle_messages())
@@ -64,15 +59,16 @@ class WebsocketConnector(Connector):
         self._logger.info(f"Disconnected from {self._address}")
 
     async def send(self, message: str) -> None:
-        if self._connected:
-            try:
-                await self._connection.send(message)
-            except Exception as e:
-                exception = ConnectorError(f"Unexpected exception: {e}")
-                self._logger.error(exception)
-                raise exception from e
-            self._logger.debug(f"Message sent:\n{message}")
-        else:
+        if not self._connected:
             exception = DisconnectedError(message)
             self._logger.error(exception)
             raise exception
+
+        try:
+            await self._connection.send(message)
+        except Exception as e:
+            exception = ConnectorError(f"Unexpected exception: {e}")
+            self._logger.error(exception)
+            raise exception from e
+
+        self._logger.debug(f"Message sent:\n{message}")
